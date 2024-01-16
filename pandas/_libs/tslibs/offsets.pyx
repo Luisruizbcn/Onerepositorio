@@ -4705,10 +4705,6 @@ _lite_rule_alias = {
     "BYS": "BYS-JAN",  # BYearBegin(month=1),
 
     "Min": "min",
-    "min": "min",
-    "ms": "ms",
-    "us": "us",
-    "ns": "ns",
 }
 
 _dont_uppercase = {
@@ -4733,6 +4729,9 @@ _dont_uppercase = {
     "qe-oct",
     "qe-nov",
     "ye",
+    "min",
+    "ns",
+    "us",
 }
 
 
