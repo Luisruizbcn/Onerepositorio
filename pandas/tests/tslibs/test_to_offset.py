@@ -128,7 +128,7 @@ def test_to_offset_leading_zero(freqstr, expected):
     assert result.n == expected
 
 
-@pytest.mark.parametrize("freqstr,expected", [("+1d", 1), ("+2h30min", 150)])
+@pytest.mark.parametrize("freqstr,expected", [("+1D", 1), ("+2h30min", 150)])
 def test_to_offset_leading_plus(freqstr, expected):
     result = to_offset(freqstr)
     assert result.n == expected
@@ -192,7 +192,7 @@ def test_anchored_shortcuts(shortcut, expected):
     ],
 )
 def test_to_offset_lowercase_frequency_deprecated(freq_depr):
-    # GH#54939
+    # GH#54939, GH#56346
     depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
     f"future version, please use '{freq_depr.upper()[1:]}' instead."
 
@@ -212,7 +212,7 @@ def test_to_offset_lowercase_frequency_deprecated(freq_depr):
     ],
 )
 def test_to_offset_uppercase_frequency_deprecated(freq_depr):
-    # GH#54939
+    # GH#54939, GH#56346
     depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
     f"future version, please use '{freq_depr.lower()[1:]}' instead."
 

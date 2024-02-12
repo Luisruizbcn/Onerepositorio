@@ -215,7 +215,7 @@ class TestPeriodRangeDisallowedFreqs:
         ],
     )
     def test_a_deprecated_from_time_series(self, freq, freq_depr):
-        # GH#52536
+        # GH#52536,GH#56346
         msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
         f"future version. Please use '{freq[1:]}' instead."
 

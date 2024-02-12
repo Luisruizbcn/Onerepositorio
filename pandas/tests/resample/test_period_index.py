@@ -166,12 +166,12 @@ class TestPeriodIndex:
             ("Y-DEC", "<YearEnd: month=12>"),
             ("Q-MAR", "<QuarterEnd: startingMonth=3>"),
             ("M", "<MonthEnd>"),
-            ("w-thu", "<Week: weekday=3>"),
+            ("W-THU", "<Week: weekday=3>"),
         ],
     )
     def test_not_subperiod(self, simple_period_range_series, rule, expected_error_msg):
         # These are incompatible period rules for resampling
-        ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="w-wed")
+        ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="W-WED")
         msg = (
             "Frequency <Week: weekday=2> cannot be resampled to "
             f"{expected_error_msg}, as they are not sub or super periods"
@@ -902,8 +902,8 @@ class TestPeriodIndex:
             ("19910905 12:00", "19910909 12:00", "h", "17h", "10h"),
             ("19910905 12:00", "19910909 12:00", "h", "17h", "3h"),
             ("19910905", "19910913 06:00", "2h", "24h", "10h"),
-            ("19910905", "19910905 01:39", "Min", "5Min", "3Min"),
-            ("19910905", "19910905 03:18", "2Min", "5Min", "3Min"),
+            ("19910905", "19910905 01:39", "min", "5min", "3min"),
+            ("19910905", "19910905 03:18", "2min", "5min", "3min"),
         ],
     )
     def test_resample_with_offset(self, start, end, start_freq, end_freq, offset):
@@ -1056,7 +1056,7 @@ class TestPeriodIndex:
     ],
 )
 def test_resample_frequency_ME_QE_YE_error_message(frame_or_series, freq, freq_depr):
-    # GH#9586
+    # GH#9586, GH#56346
     msg = f"for Period, please use '{freq[1:]}' instead of '{freq_depr[1:]}'"
 
     obj = frame_or_series(range(5), index=period_range("2020-01-01", periods=5))

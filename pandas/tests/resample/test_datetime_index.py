@@ -50,7 +50,7 @@ def simple_date_range_series():
 
 
 def test_custom_grouper(unit):
-    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="Min")
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="min")
     dti = index.as_unit(unit)
     s = Series(np.array([1] * len(dti)), index=dti, dtype="int64")
 
@@ -121,7 +121,7 @@ def test_custom_grouper_df(unit):
     ],
 )
 def test_resample_basic(closed, expected, unit):
-    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="Min")
+    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
     s = Series(range(len(index)), index=index)
     s.index.name = "index"
     s.index = s.index.as_unit(unit)
@@ -156,11 +156,11 @@ def test_resample_integerarray(unit):
 
 
 def test_resample_basic_grouper(unit):
-    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="Min")
+    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
     s = Series(range(len(index)), index=index)
     s.index.name = "index"
     s.index = s.index.as_unit(unit)
-    result = s.resample("5Min").last()
+    result = s.resample("5min").last()
     grouper = Grouper(freq=Minute(5), closed="left", label="left")
     expected = s.groupby(grouper).agg(lambda x: x.iloc[-1])
     tm.assert_series_equal(result, expected)
@@ -176,7 +176,7 @@ def test_resample_basic_grouper(unit):
 def test_resample_string_kwargs(keyword, value, unit):
     # see gh-19303
     # Check that wrong keyword argument strings raise an error
-    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="Min")
+    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
     series = Series(range(len(index)), index=index)
     series.index.name = "index"
     series.index = series.index.as_unit(unit)
@@ -188,7 +188,7 @@ def test_resample_string_kwargs(keyword, value, unit):
 def test_resample_how(downsample_method, unit):
     if downsample_method == "ohlc":
         pytest.skip("covered by test_resample_how_ohlc")
-    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="Min")
+    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
     s = Series(range(len(index)), index=index)
     s.index.name = "index"
     s.index = s.index.as_unit(unit)
@@ -209,7 +209,7 @@ def test_resample_how(downsample_method, unit):
 
 
 def test_resample_how_ohlc(unit):
-    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="Min")
+    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
     s = Series(range(len(index)), index=index)
     s.index.name = "index"
     s.index = s.index.as_unit(unit)
@@ -239,7 +239,7 @@ def test_resample_how_ohlc(unit):
 def test_resample_how_callables(unit):
     # GH#7929
     data = np.arange(5, dtype=np.int64)
-    ind = date_range(start="2014-01-01", periods=len(data), freq="d").as_unit(unit)
+    ind = date_range(start="2014-01-01", periods=len(data), freq="D").as_unit(unit)
     df = DataFrame({"A": data, "B": data}, index=ind)
 
     def fn(x, a=1):
@@ -334,7 +334,7 @@ def test_resample_basic_from_daily(unit):
     s = Series(np.random.default_rng(2).random(len(dti)), dti)
 
     # to weekly
-    result = s.resample("w-sun").last()
+    result = s.resample("W-SUN").last()
 
     assert len(result) == 3
     assert (result.index.dayofweek == [6, 6, 6]).all()
@@ -463,7 +463,7 @@ def test_resample_upsample(unit):
     s = Series(np.random.default_rng(2).random(len(dti)), dti)
 
     # to minutely, by padding
-    result = s.resample("Min").ffill()
+    result = s.resample("min").ffill()
     assert len(result) == 12961
     assert result.iloc[0] == s.iloc[0]
     assert result.iloc[-1] == s.iloc[-1]
@@ -520,8 +520,8 @@ def test_upsample_with_limit(unit):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq", ["1D", "10h", "5Min", "10s"])
-@pytest.mark.parametrize("rule", ["YE", "3ME", "15D", "30h", "15Min", "30s"])
+@pytest.mark.parametrize("freq", ["1D", "10h", "5min", "10s"])
+@pytest.mark.parametrize("rule", ["YE", "3ME", "15D", "30h", "15min", "30s"])
 def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
     # GH 33939
     rng = date_range("1/1/2000", periods=3, freq=freq, tz=tz_aware_fixture).as_unit(
@@ -535,14 +535,14 @@ def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
 
 
 def test_resample_ohlc(unit):
-    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="Min")
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="min")
     s = Series(range(len(index)), index=index)
     s.index.name = "index"
     s.index = s.index.as_unit(unit)
 
     grouper = Grouper(freq=Minute(5))
     expect = s.groupby(grouper).agg(lambda x: x.iloc[-1])
-    result = s.resample("5Min").ohlc()
+    result = s.resample("5min").ohlc()
 
     assert len(result) == len(expect)
     assert len(result.columns) == 4
@@ -1216,7 +1216,7 @@ def test_anchored_lowercase_buglet(unit):
     dates = date_range("4/16/2012 20:00", periods=50000, freq="s").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(dates)), index=dates)
     # it works!
-    ts.resample("d").mean()
+    ts.resample("D").mean()
 
 
 def test_upsample_apply_functions(unit):
@@ -1327,8 +1327,8 @@ def test_resample_consistency(unit):
     s10 = s.reindex(index=i10, method="bfill")
     s10_2 = s.reindex(index=i10, method="bfill", limit=2)
     rl = s.reindex_like(s10, method="bfill", limit=2)
-    r10_2 = s.resample("10Min").bfill(limit=2)
-    r10 = s.resample("10Min").bfill()
+    r10_2 = s.resample("10min").bfill(limit=2)
+    r10 = s.resample("10min").bfill()
 
     # s10_2, r10, r10_2, rl should all be equal
     tm.assert_series_equal(s10_2, r10)
@@ -1556,9 +1556,9 @@ def test_groupby_with_dst_time_change(unit):
     )
 
     df = DataFrame([1, 2], index=index)
-    result = df.groupby(Grouper(freq="1d")).last()
+    result = df.groupby(Grouper(freq="1D")).last()
     expected_index_values = date_range(
-        "2016-11-02", "2016-11-24", freq="d", tz="America/Chicago"
+        "2016-11-02", "2016-11-24", freq="D", tz="America/Chicago"
     ).as_unit(unit)
 
     index = DatetimeIndex(expected_index_values)
@@ -1588,7 +1588,7 @@ def test_resample_dst_anchor(unit):
 
 def test_resample_dst_anchor2(unit):
     dti = date_range(
-        "2013-09-30", "2013-11-02", freq="30Min", tz="Europe/Paris"
+        "2013-09-30", "2013-11-02", freq="30min", tz="Europe/Paris"
     ).as_unit(unit)
     values = range(dti.size)
     df = DataFrame({"a": values, "b": values, "c": values}, index=dti, dtype="int64")
@@ -1799,7 +1799,7 @@ def test_resample_datetime_values(unit):
 
 def test_resample_apply_with_additional_args(unit):
     # GH 14615
-    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="Min")
+    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
     series = Series(range(len(index)), index=index)
     series.index.name = "index"
 
@@ -1840,14 +1840,14 @@ def test_resample_apply_with_additional_args2():
 @pytest.mark.parametrize(
     "n1, freq1, n2, freq2",
     [
-        (30, "s", 0.5, "Min"),
-        (60, "s", 1, "Min"),
+        (30, "s", 0.5, "min"),
+        (60, "s", 1, "min"),
         (3600, "s", 1, "h"),
-        (60, "Min", 1, "h"),
+        (60, "min", 1, "h"),
         (21600, "s", 0.25, "D"),
         (86400, "s", 1, "D"),
         (43200, "s", 0.5, "D"),
-        (1440, "Min", 1, "D"),
+        (1440, "min", 1, "D"),
         (12, "h", 0.5, "D"),
         (24, "h", 1, "D"),
     ],
@@ -2058,7 +2058,7 @@ def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
     depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
     f"in a future version, please use '{freq[1:]}' instead."
 
-    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     expected = s.resample(freq).mean()
     with tm.assert_produces_warning(FutureWarning, match=depr_msg):
         result = s.resample(freq_depr).mean()
@@ -2078,7 +2078,7 @@ def test_resample_BM_BQ_deprecated(freq, freq_depr):
     depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
     f"in a future version, please use '{freq[1:]}' instead."
 
-    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     expected = s.resample(freq).mean()
     with tm.assert_produces_warning(FutureWarning, match=depr_msg):
         result = s.resample(freq_depr).mean()

@@ -407,8 +407,10 @@ cdef dict c_DEPR_ABBREVS = {
     "L": "ms",
     "l": "ms",
     "U": "us",
+    "US": "us",
     "u": "us",
     "N": "ns",
+    "NS": "ns",
     "n": "ns",
 }
 
@@ -509,7 +511,7 @@ class Resolution(Enum):
                 warnings.warn(
                     f"\'{freq}\' is deprecated and will be removed in a future "
                     f"version. Please use \'{abbrev}\' "
-                    "instead of \'{freq}\'.",
+                    f"instead of \'{freq}\'.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )

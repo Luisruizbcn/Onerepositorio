@@ -117,7 +117,9 @@ class TestPeriodConstruction:
         i2 = Period("3/1/2005", freq="D")
         assert i1 == i2
 
-        i3 = Period(year=2005, month=3, day=1, freq="d")
+        msg = "'d' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            i3 = Period(year=2005, month=3, day=1, freq="d")
         assert i1 == i3
 
         i1 = Period("2007-01-01 09:00:00.001")
@@ -145,7 +147,7 @@ class TestPeriodConstruction:
     def test_tuple_freq_disallowed(self):
         # GH#34703 tuple freq disallowed
         with pytest.raises(TypeError, match="pass as a string instead"):
-            Period("1982", freq=("Min", 1))
+            Period("1982", freq=("min", 1))
 
         with pytest.raises(TypeError, match="pass as a string instead"):
             Period("2006-12-31", ("w", 1))
@@ -661,7 +663,7 @@ class TestPeriodMethods:
             assert end_ts == p.to_timestamp("D", how=a)
             assert end_ts == p.to_timestamp("3D", how=a)
 
-        from_lst = ["Y", "Q", "M", "W", "B", "D", "h", "Min", "s"]
+        from_lst = ["Y", "Q", "M", "W", "B", "D", "h", "min", "s"]
 
         def _ex(p):
             if p.freq == "B":
@@ -822,7 +824,7 @@ class TestPeriodProperties:
         assert isinstance(p, Period)
 
     def test_freq_str(self):
-        i1 = Period("1982", freq="Min")
+        i1 = Period("1982", freq="min")
         assert i1.freq == offsets.Minute()
         assert i1.freqstr == "min"
 
@@ -1067,7 +1069,7 @@ class TestPeriodProperties:
 
     def test_properties_minutely(self):
         # Test properties on Periods with minutely frequency.
-        t_date = Period(freq="Min", year=2007, month=1, day=1, hour=0, minute=0)
+        t_date = Period(freq="min", year=2007, month=1, day=1, hour=0, minute=0)
         #
         assert t_date.quarter == 1
         assert t_date.month == 1
@@ -1085,7 +1087,7 @@ class TestPeriodProperties:
     def test_properties_secondly(self):
         # Test properties on Periods with secondly frequency.
         s_date = Period(
-            freq="Min", year=2007, month=1, day=1, hour=0, minute=0, second=0
+            freq="min", year=2007, month=1, day=1, hour=0, minute=0, second=0
         )
         #
         assert s_date.year == 2007
@@ -1100,10 +1102,34 @@ class TestPeriodProperties:
         assert s_date.days_in_month == 31
         assert (
             Period(
-                freq="Min", year=2012, month=2, day=1, hour=0, minute=0, second=0
+                freq="min", year=2012, month=2, day=1, hour=0, minute=0, second=0
             ).days_in_month
             == 29
         )
+
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2W", "2w"),
+            ("2M", "2m"),
+            ("2Q", "2q"),
+            ("2Y-SEP", "2y-sep"),
+            ("2h", "2H"),
+            ("2s", "2S"),
+            ("2us", "2US"),
+            ("2ns", "2NS"),
+        ],
+    )
+    def test_period_upperlowercase_frequency_deprecated(self, freq, freq_depr):
+        # GH#56346
+        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+        f"future version. Please use '{freq[1:]}' instead."
+
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            p1 = Period("2016-03-01 09:00", freq=freq_depr)
+
+        p2 = Period("2016-03-01 09:00", freq=freq)
+        assert p1 == p2
 
 
 class TestPeriodComparisons:
