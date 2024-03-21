@@ -719,6 +719,14 @@ cpdef inline str parse_timedelta_unit(str unit):
         return "ns"
     elif unit == "M":
         return unit
+    elif unit == "MS":
+        warnings.warn(
+            f"\'{unit}\' is deprecated and will be removed in a future version. "
+            f"Please use \'ms\' instead of \'{unit}\'.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        unit = "ms"
     elif unit in c_DEPR_ABBREVS:
         warnings.warn(
             f"\'{unit}\' is deprecated and will be removed in a "
@@ -1800,6 +1808,11 @@ class Timedelta(_Timedelta):
 
             Values `H`, `T`, `S`, `L`, `U`, and `N` are deprecated in favour
             of the values `h`, `min`, `s`, `ms`, `us`, and `ns`.
+
+        .. deprecated:: 3.0.0
+
+            Units `MIN`, `MS`, `US`, and `NS` are deprecated in favour
+            of the units `min`, `ms`, `us`, and `ns`.
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,

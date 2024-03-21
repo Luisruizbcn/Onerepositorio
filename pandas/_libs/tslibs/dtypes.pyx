@@ -322,6 +322,9 @@ cdef dict c_DEPR_ABBREVS = {
     "u": "us",
     "N": "ns",
     "n": "ns",
+    "MIN": "min",
+    "US": "us",
+    "NS": "ns",
 }
 
 
