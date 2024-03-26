@@ -118,7 +118,7 @@ def test_resample_empty_series(freq, index, resample_method):
     if freq == "ME" and isinstance(ser.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
-            "e.g. '24h' or '3D', not <MonthEnd>"
+            "e.g. '24h' or '72h', not <MonthEnd>"
         )
         with pytest.raises(ValueError, match=msg):
             ser.resample(freq)
@@ -196,7 +196,7 @@ def test_resample_count_empty_series(freq, index, resample_method):
     if freq == "ME" and isinstance(ser.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
-            "e.g. '24h' or '3D', not <MonthEnd>"
+            "e.g. '24h' or '72h', not <MonthEnd>"
         )
         with pytest.raises(ValueError, match=msg):
             ser.resample(freq)
@@ -232,7 +232,7 @@ def test_resample_empty_dataframe(index, freq, resample_method):
     if freq == "ME" and isinstance(df.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
-            "e.g. '24h' or '3D', not <MonthEnd>"
+            "e.g. '24h' or '72h', not <MonthEnd>"
         )
         with pytest.raises(ValueError, match=msg):
             df.resample(freq, group_keys=False)
@@ -280,7 +280,7 @@ def test_resample_count_empty_dataframe(freq, index):
     if freq == "ME" and isinstance(empty_frame_dti.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
-            "e.g. '24h' or '3D', not <MonthEnd>"
+            "e.g. '24h' or '72h', not <MonthEnd>"
         )
         with pytest.raises(ValueError, match=msg):
             empty_frame_dti.resample(freq)
@@ -316,7 +316,7 @@ def test_resample_size_empty_dataframe(freq, index):
     if freq == "ME" and isinstance(empty_frame_dti.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
-            "e.g. '24h' or '3D', not <MonthEnd>"
+            "e.g. '24h' or '72h', not <MonthEnd>"
         )
         with pytest.raises(ValueError, match=msg):
             empty_frame_dti.resample(freq)
@@ -388,7 +388,7 @@ def test_apply_to_empty_series(index, freq):
     if freq == "ME" and isinstance(ser.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
-            "e.g. '24h' or '3D', not <MonthEnd>"
+            "e.g. '24h' or '72h', not <MonthEnd>"
         )
         with pytest.raises(ValueError, match=msg):
             ser.resample(freq)

@@ -27,7 +27,7 @@ class TestTimedeltaArrayConstructor:
 
         msg = (
             "Inferred frequency None from passed values does not "
-            "conform to passed frequency D"
+            "conform to passed frequency 24h"
         )
         depr_msg = "TimedeltaArray.__init__ is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):

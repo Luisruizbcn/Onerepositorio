@@ -1077,7 +1077,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Day.delta
     Day.freqstr
     Day.kwds
     Day.name

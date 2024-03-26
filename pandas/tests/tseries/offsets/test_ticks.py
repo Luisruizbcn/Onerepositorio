@@ -55,7 +55,7 @@ def test_delta_to_tick():
     delta = timedelta(3)
 
     tick = delta_to_tick(delta)
-    assert tick == offsets.Day(3)
+    assert tick == offsets.Hour(72)
 
     td = Timedelta(nanoseconds=5)
     tick = delta_to_tick(td)
@@ -241,12 +241,10 @@ def test_tick_addition(kls, expected):
 
 def test_tick_delta_overflow():
     # GH#55503 raise OutOfBoundsTimedelta, not OverflowError
-    tick = offsets.Day(10**9)
+    tick = offsets.Hour(24 * 10**9)
     msg = "Cannot cast 1000000000 days 00:00:00 to unit='ns' without overflow"
-    depr_msg = "Day.delta is deprecated"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            tick.delta
+        tick.delta
 
 
 @pytest.mark.parametrize("cls", tick_classes)
