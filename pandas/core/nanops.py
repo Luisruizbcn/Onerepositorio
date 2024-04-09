@@ -1351,9 +1351,13 @@ def nankurt(
     # floating point error
     #
     # #18044 in _libs/windows.pyx calc_kurt follow this behavior
-    # to fix the fperr to treat denom <1e-14 as zero
-    numerator = _zero_out_fperr(numerator)
-    denominator = _zero_out_fperr(denominator)
+    # to fix the fperr to treat denom <1e-14 as zero (default cutoff)
+    # GH-57972 set cutoff lower for low variance arrays to prevent cutoff of otherwise
+    # numerically stable values. Scipy.kurtosis and this implementation start
+    # diverging for examples with cutoffs below e-281
+    cutoff = 1e-281
+    numerator = _zero_out_fperr(numerator, cutoff)
+    denominator = _zero_out_fperr(denominator, cutoff)
 
     if not isinstance(denominator, np.ndarray):
         # if ``denom`` is a scalar, check these corner cases first before
@@ -1565,12 +1569,12 @@ def check_below_min_count(
     return False
 
 
-def _zero_out_fperr(arg):
+def _zero_out_fperr(arg, cutoff=1e-14):
     # #18044 reference this behavior to fix rolling skew/kurt issue
     if isinstance(arg, np.ndarray):
-        return np.where(np.abs(arg) < 1e-14, 0, arg)
+        return np.where(np.abs(arg) < cutoff, 0, arg)
     else:
-        return arg.dtype.type(0) if np.abs(arg) < 1e-14 else arg
+        return arg.dtype.type(0) if np.abs(arg) < cutoff else arg
 
 
 @disallow("M8", "m8")
