@@ -1118,7 +1118,13 @@ default 'raise'
 
         Returns
         -------
-        numpy.ndarray
+        A numpy.ndarray
+            A numpy.ndarray with ``datetime.datetime`` objects
+            from the date strings.
+
+        See Also
+        --------
+        DatetimeIndex.to_pydatetime: Return PeriodArray/PeriodIndex as object.
 
         Examples
         --------
@@ -1193,6 +1199,8 @@ default 'raise'
         Returns
         -------
         PeriodArray/PeriodIndex
+            PeriodArray/PeriodIndex with each value rounded down
+            to the frequency specified.
 
         Raises
         ------
