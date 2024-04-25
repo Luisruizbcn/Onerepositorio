@@ -1658,9 +1658,8 @@ default 'raise'
 
         See Also
         --------
-        DatetimeIndex.day: The day of the datetime.
-        DatetimeIndex.minute: The minutes of the datetime.
-        DatetimeIndex.second: The seconds of the datetime.
+        Series.dt.minute : Minutes of the datetime.
+        Series.dt.second : Seconds of the datetime.
 
         Examples
         --------
