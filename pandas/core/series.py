@@ -634,6 +634,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return the dtype object of the underlying data.
 
+        See Also
+        --------
+        DataFrame.dtypes :  Return the dtypes in the DataFrame.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
@@ -1741,6 +1745,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Index
             Index of the Series.
+
+        See Also
+        --------
+        Series.index : The index (axis labels) of the Series.
 
         Examples
         --------
@@ -5351,6 +5359,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Replace values where the conditions are True.
 
+        .. versionadded:: 2.2.0
+
         Parameters
         ----------
         caselist : A list of tuples of conditions and expected replacements
@@ -5367,8 +5377,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             and should return a scalar or Series. The callable
             must not change the input Series
             (though pandas doesn`t check it).
-
-            .. versionadded:: 2.2.0
 
         Returns
         -------

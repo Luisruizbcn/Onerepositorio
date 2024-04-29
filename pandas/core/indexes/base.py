@@ -832,7 +832,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _cleanup(self) -> None:
-        self._engine.clear_mapping()
+        if "_engine" in self._cache:
+            self._engine.clear_mapping()
 
     @cache_readonly
     def _engine(
@@ -976,6 +977,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the dtype object of the underlying data.
 
+        See Also
+        --------
+        Index.inferred_type: Return a string of the type inferred from the values.
+
         Examples
         --------
         >>> idx = pd.Index([1, 2, 3])
@@ -1055,6 +1060,12 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         Index
             Index with values cast to specified dtype.
+
+        See Also
+        --------
+        Index.dtype: Return the dtype object of the underlying data.
+        Index.dtypes: Return the dtype object of the underlying data.
+        Index.convert_dtypes: Convert columns to the best possible dtypes.
 
         Examples
         --------
@@ -1251,11 +1262,18 @@ class Index(IndexOpsMixin, PandasObject):
         name : Label, optional
             Set name for new object.
         deep : bool, default False
+            If True attempts to make a deep copy of the Index.
+                Else makes a shallow copy.
 
         Returns
         -------
         Index
             Index refer to new object which is a copy of this object.
+
+        See Also
+        --------
+        Index.delete: Make new Index with passed location(-s) deleted.
+        Index.drop: Make new Index with passed list of labels deleted.
 
         Notes
         -----
@@ -1637,6 +1655,11 @@ class Index(IndexOpsMixin, PandasObject):
     def name(self) -> Hashable:
         """
         Return Index or MultiIndex name.
+
+        See Also
+        --------
+        Index.set_names: Able to set new names partially and by level.
+        Index.rename: Able to set new names partially and by level.
 
         Examples
         --------
@@ -2077,6 +2100,12 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index or MultiIndex
+            Returns an Index or MultiIndex object, depending on the resulting index
+            after removing the requested level(s).
+
+        See Also
+        --------
+        Index.dropna : Return Index without NA/NaN values.
 
         Examples
         --------
@@ -2344,6 +2373,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a string of the type inferred from the values.
 
+        See Also
+        --------
+        Index.dtype : Return the dtype object of the underlying data.
+
         Examples
         --------
         >>> idx = pd.Index([1, 2, 3])
@@ -2422,6 +2455,12 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         bool
+
+        See Also
+        --------
+        Index.isna : Detect missing values.
+        Index.dropna : Return Index without NA/NaN values.
+        Index.fillna : Fill NA/NaN values with the specified value.
 
         Examples
         --------
@@ -2556,6 +2595,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+           NA/NaN values replaced with `value`.
 
         See Also
         --------
@@ -2592,6 +2632,12 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Returns an Index object after removing NA/NaN values.
+
+        See Also
+        --------
+        Index.fillna : Fill NA/NaN values with the specified value.
+        Index.isna : Detect missing values.
 
         Examples
         --------
@@ -2625,6 +2671,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Unique values in the index.
 
         See Also
         --------
@@ -2660,6 +2707,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            A new Index object with the duplicate values removed.
 
         See Also
         --------
@@ -3905,6 +3953,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         target : an iterable
+            An iterable containing the values to be used for creating the new index.
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
             * pad / ffill: find the PREVIOUS index value if no exact match.
@@ -4841,8 +4890,9 @@ class Index(IndexOpsMixin, PandasObject):
     def memory_usage(self, deep: bool = False) -> int:
         result = self._memory_usage(deep=deep)
 
-        # include our engine hashtable
-        result += self._engine.sizeof(deep=deep)
+        # include our engine hashtable, only if it's already cached
+        if "_engine" in self._cache:
+            result += self._engine.sizeof(deep=deep)
         return result
 
     @final
@@ -4919,6 +4969,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError
         return value
 
+    @cache_readonly
     def _is_memory_usage_qualified(self) -> bool:
         """
         Return a boolean if we need a qualified .info display.
@@ -5010,12 +5061,9 @@ class Index(IndexOpsMixin, PandasObject):
 
             if not isinstance(self.dtype, ExtensionDtype):
                 if len(key) == 0 and len(key) != len(self):
-                    warnings.warn(
-                        "Using a boolean indexer with length 0 on an Index with "
-                        "length greater than 0 is deprecated and will raise in a "
-                        "future version.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
+                    raise ValueError(
+                        "The length of the boolean indexer cannot be 0 "
+                        "when the Index has length greater than 0."
                     )
 
         result = getitem(key)
@@ -5173,6 +5221,12 @@ class Index(IndexOpsMixin, PandasObject):
         bool
             True if "other" is an Index and it has the same elements and order
             as the calling index; False otherwise.
+
+        See Also
+        --------
+        Index.identical: Checks that object attributes and types are also equal.
+        Index.has_duplicates: Check if the Index has duplicate values.
+        Index.is_unique: Return if the index has unique values.
 
         Examples
         --------
@@ -6066,6 +6120,10 @@ class Index(IndexOpsMixin, PandasObject):
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
 
+        See Also
+        --------
+        Index.where : Replace values where the condition is False.
+
         Examples
         --------
         >>> idx = pd.Index([1, 2, 3])
@@ -6348,7 +6406,10 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         label : object
+            The label for which to calculate the slice bound.
         side : {'left', 'right'}
+            if 'left' return leftmost position of given label.
+            if 'right' return one-past-the-rightmost position of given label.
 
         Returns
         -------
@@ -6437,6 +6498,8 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         tuple[int, int]
+            Returns a tuple of two integers representing the slice locations for the
+            input labels within the index.
 
         See Also
         --------
@@ -6624,6 +6687,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         labels : array-like or scalar
+            Array-like object or a scalar value, representing the labels to be removed
+            from the Index.
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
 
@@ -6636,6 +6701,11 @@ class Index(IndexOpsMixin, PandasObject):
         ------
         KeyError
             If not all of the labels are found in the selected axis
+
+        See Also
+        --------
+        Index.dropna : Return Index without NA/NaN values.
+        Index.drop_duplicates : Return Index with duplicate values removed.
 
         Examples
         --------
@@ -7102,6 +7172,13 @@ class Index(IndexOpsMixin, PandasObject):
     def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
+
+        See Also
+        --------
+        Index.size: Return the number of elements in the underlying data.
+        Index.ndim: Number of dimensions of the underlying data, by definition 1.
+        Index.dtype: Return the dtype object of the underlying data.
+        Index.values: Return an array representing the data in the Index.
 
         Examples
         --------
