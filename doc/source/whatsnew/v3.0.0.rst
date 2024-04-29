@@ -483,6 +483,7 @@ Other
 - Bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
 - Bug in Dataframe Interchange Protocol implementation was returning incorrect results for data buffers' associated dtype, for string and datetime columns (:issue:`54781`)
+- Fixed bug in :meth:`DataFrame.rename` where checks on argument errors="raise" are not consistent with the actual transformation applied (:issue:`55169`). Logic change is accompanied with improvement to docs, a new test and a more descriptive ``KeyError`` message when a tuple label rename is attempted across :class:`MultiIndex` levels
 
 .. ***DO NOT USE THIS SECTION***
 
