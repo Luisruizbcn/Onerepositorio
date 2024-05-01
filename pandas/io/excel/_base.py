@@ -118,11 +118,31 @@ sheet_name : str, int, list, or None, default 0
     Available cases:
 
     * Defaults to ``0``: 1st sheet as a `DataFrame`
+      If a table name is specified and a sheet name is not (so it defaults
+      to 0), no sheets will be loaded.
     * ``1``: 2nd sheet as a `DataFrame`
     * ``"Sheet1"``: Load sheet with name "Sheet1"
     * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
       as a dict of `DataFrame`
     * ``None``: All worksheets.
+
+table_name : str, list of str, or None, default 0
+    Strings are used for table_names that correspond to Excel Table names.
+    Lists of strings are used to request multiple tables.
+    Specify ``None`` to get all tables.
+
+    Available cases:
+
+    * Defaults to ``0``: No tables are read or returned
+    * ``Table1``: Load table with name "Table1", returned as a DataFrame
+    * ``["Table1", "Table2", "Table3"]``: Load the tables with names "Table1",
+      "Table2", and "Table3". Returned as a dictionary of DataFrames
+    * ``sheet_name="Sheet1", table_name="Table1":`` Load both the sheet with
+      name "Sheet1" and the table with name "Table1". Returned as a nested
+      dictionary, containing a "sheets" dictionary and a "tables" dictionary.
+      Each of these 2 dictionaries hold DataFrames of their respective data.
+      This is the same for if a list of either or both of these parameters
+      are specified.
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
@@ -297,9 +317,10 @@ engine_kwargs : dict, optional
 
 Returns
 -------
-DataFrame or dict of DataFrames
+DataFrame, dict of DataFrames, or nested dictionary containing 2 dicts of DataFrames
     DataFrame from the passed in Excel file. See notes in sheet_name
-    argument for more information on when a dict of DataFrames is returned.
+    argument for more information on when a dict of DataFrames is returned,
+    and table_name for when a nested dictionary is returned.
 
 See Also
 --------
@@ -377,6 +398,9 @@ def read_excel(
     # sheet name is str or int -> DataFrame
     sheet_name: str | int = ...,
     *,
+    # table name is str -> DataFrame
+    # If sheet name and table name are specified -> Nested Dictionary of DataFrames
+    table_name: str = ...,
     header: int | Sequence[int] | None = ...,
     names: SequenceNotStr[Hashable] | range | None = ...,
     index_col: int | str | Sequence[int] | None = ...,
@@ -406,7 +430,7 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> DataFrame: ...
+) -> DataFrame | dict[str, DataFrame] | dict[str, dict[str, DataFrame]]: ...
 
 
 @overload
@@ -415,6 +439,9 @@ def read_excel(
     # sheet name is list or None -> dict[IntStrT, DataFrame]
     sheet_name: list[IntStrT] | None,
     *,
+    # table name is list[str] -> DataFrame
+    # If sheet name and table name are specified -> Nested Dictionary of DataFrames
+    table_name: list[str] | None,
     header: int | Sequence[int] | None = ...,
     names: SequenceNotStr[Hashable] | range | None = ...,
     index_col: int | str | Sequence[int] | None = ...,
@@ -444,7 +471,12 @@ def read_excel(
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> dict[IntStrT, DataFrame]: ...
+) -> (
+    DataFrame
+    | dict[IntStrT, DataFrame]
+    | dict[str, DataFrame]
+    | dict[str, dict[str, DataFrame]]
+): ...
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -453,6 +485,8 @@ def read_excel(
     io,
     sheet_name: str | int | list[IntStrT] | None = 0,
     *,
+    # If sheet name and table name are specified -> Nested Dictionary of DataFrames
+    table_name: str | int | list[str] | None = 0,
     header: int | Sequence[int] | None = 0,
     names: SequenceNotStr[Hashable] | range | None = None,
     index_col: int | str | Sequence[int] | None = None,
@@ -483,12 +517,21 @@ def read_excel(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine_kwargs: dict | None = None,
-) -> DataFrame | dict[IntStrT, DataFrame]:
+) -> (
+    DataFrame
+    | dict[IntStrT, DataFrame]
+    | dict[str, DataFrame]
+    | dict[str, dict[str, DataFrame]]
+):
     check_dtype_backend(dtype_backend)
     should_close = False
     if engine_kwargs is None:
-        engine_kwargs = {}
-
+        if table_name == 0:
+            # The only time table_name will have a value of 0 is when it's not specified
+            engine_kwargs = {}
+        else:
+            # To read in table data the file cannot be read only
+            engine_kwargs = {"read_only": False}
     if not isinstance(io, ExcelFile):
         should_close = True
         io = ExcelFile(
@@ -506,6 +549,7 @@ def read_excel(
     try:
         data = io.parse(
             sheet_name=sheet_name,
+            table_name=table_name,
             header=header,
             names=names,
             index_col=index_col,
@@ -550,7 +594,6 @@ class BaseExcelReader(Generic[_WorkbookT]):
     ) -> None:
         if engine_kwargs is None:
             engine_kwargs = {}
-
         self.handles = IOHandles(
             handle=filepath_or_buffer, compression={"method": None}
         )
@@ -604,7 +647,17 @@ class BaseExcelReader(Generic[_WorkbookT]):
     def get_sheet_by_index(self, index: int):
         raise NotImplementedError
 
-    def get_sheet_data(self, sheet, rows: int | None = None):
+    @property
+    def table_names(self) -> list[str]:
+        raise NotImplementedError
+
+    def get_sheets_required(self, tables: list[str] | None):
+        raise NotImplementedError
+
+    def get_sheet_tables(self, sheet):
+        raise NotImplementedError
+
+    def get_data(self, sheet, tablename, file_rows_needed: int | None):
         raise NotImplementedError
 
     def raise_if_bad_sheet_by_index(self, index: int) -> None:
@@ -714,6 +767,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
     def parse(
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
+        table_name: str | int | list[str] | None = 0,
         header: int | Sequence[int] | None = 0,
         names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
@@ -753,12 +807,29 @@ class BaseExcelReader(Generic[_WorkbookT]):
         else:
             sheets = [sheet_name]
 
+        tables: list[str] | None
+        if isinstance(table_name, int):
+            tables = None
+            if table_name != 0:
+                raise NotImplementedError
+        elif isinstance(table_name, list):
+            tables = table_name
+            ret_dict = True
+        elif table_name is None:
+            tables = self.table_names
+            ret_dict = True
+        else:
+            tables = [table_name]
+
         # handle same-type duplicates.
         sheets = cast(Union[list[int], list[str]], list(dict.fromkeys(sheets).keys()))
 
-        output = {}
+        output: dict | dict[str, DataFrame] | dict[str, dict] | None
+        output = {"sheets": {}, "tables": {}}
+        outputDict = None
 
         last_sheetname = None
+        outputDict = "sheets"
         for asheetname in sheets:
             last_sheetname = asheetname
             if verbose:
@@ -770,153 +841,277 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 sheet = self.get_sheet_by_index(asheetname)
 
             file_rows_needed = self._calc_rows(header, index_col, skiprows, nrows)
-            data = self.get_sheet_data(sheet, file_rows_needed)
+            data = self.get_data(
+                sheet=sheet, tablename=None, file_rows_needed=file_rows_needed
+            )
             if hasattr(sheet, "close"):
                 # pyxlsb opens two TemporaryFiles
                 sheet.close()
             usecols = maybe_convert_usecols(usecols)
 
             if not data:
-                output[asheetname] = DataFrame()
+                output[outputDict][asheetname] = DataFrame()
                 continue
 
-            is_list_header = False
-            is_len_one_list_header = False
-            if is_list_like(header):
-                assert isinstance(header, Sequence)
-                is_list_header = True
-                if len(header) == 1:
-                    is_len_one_list_header = True
-
-            if is_len_one_list_header:
-                header = cast(Sequence[int], header)[0]
-
-            # forward fill and pull out names for MultiIndex column
-            header_names = None
-            if header is not None and is_list_like(header):
-                assert isinstance(header, Sequence)
-
-                header_names = []
-                control_row = [True] * len(data[0])
-
-                for row in header:
-                    if is_integer(skiprows):
-                        assert isinstance(skiprows, int)
-                        row += skiprows
-
-                    if row > len(data) - 1:
-                        raise ValueError(
-                            f"header index {row} exceeds maximum index "
-                            f"{len(data) - 1} of data.",
-                        )
-
-                    data[row], control_row = fill_mi_header(data[row], control_row)
-
-                    if index_col is not None:
-                        header_name, _ = pop_header_name(data[row], index_col)
-                        header_names.append(header_name)
-
-            # If there is a MultiIndex header and an index then there is also
-            # a row containing just the index name(s)
-            has_index_names = False
-            if is_list_header and not is_len_one_list_header and index_col is not None:
-                index_col_list: Sequence[int]
-                if isinstance(index_col, int):
-                    index_col_list = [index_col]
-                else:
-                    assert isinstance(index_col, Sequence)
-                    index_col_list = index_col
-
-                # We have to handle mi without names. If any of the entries in the data
-                # columns are not empty, this is a regular row
-                assert isinstance(header, Sequence)
-                if len(header) < len(data):
-                    potential_index_names = data[len(header)]
-                    potential_data = [
-                        x
-                        for i, x in enumerate(potential_index_names)
-                        if not control_row[i] and i not in index_col_list
-                    ]
-                    has_index_names = all(x == "" or x is None for x in potential_data)
-
-            if is_list_like(index_col):
-                # Forward fill values for MultiIndex index.
-                if header is None:
-                    offset = 0
-                elif isinstance(header, int):
-                    offset = 1 + header
-                else:
-                    offset = 1 + max(header)
-
-                # GH34673: if MultiIndex names present and not defined in the header,
-                # offset needs to be incremented so that forward filling starts
-                # from the first MI value instead of the name
-                if has_index_names:
-                    offset += 1
-
-                # Check if we have an empty dataset
-                # before trying to collect data.
-                if offset < len(data):
-                    assert isinstance(index_col, Sequence)
-
-                    for col in index_col:
-                        last = data[offset][col]
-
-                        for row in range(offset + 1, len(data)):
-                            if data[row][col] == "" or data[row][col] is None:
-                                data[row][col] = last
-                            else:
-                                last = data[row][col]
-
-            # GH 12292 : error when read one empty column from excel file
-            try:
-                parser = TextParser(
-                    data,
-                    names=names,
-                    header=header,
-                    index_col=index_col,
-                    has_index_names=has_index_names,
-                    dtype=dtype,
-                    true_values=true_values,
-                    false_values=false_values,
-                    skiprows=skiprows,
-                    nrows=nrows,
-                    na_values=na_values,
-                    skip_blank_lines=False,  # GH 39808
-                    parse_dates=parse_dates,
-                    date_parser=date_parser,
-                    date_format=date_format,
-                    thousands=thousands,
-                    decimal=decimal,
-                    comment=comment,
-                    skipfooter=skipfooter,
-                    usecols=usecols,
-                    dtype_backend=dtype_backend,
-                    **kwds,
-                )
-
-                output[asheetname] = parser.read(nrows=nrows)
-
-                if header_names:
-                    output[asheetname].columns = output[asheetname].columns.set_names(
-                        header_names
-                    )
-
-            except EmptyDataError:
-                # No Data, return an empty DataFrame
-                output[asheetname] = DataFrame()
-
-            except Exception as err:
-                err.args = (f"{err.args[0]} (sheet: {asheetname})", *err.args[1:])
-                raise err
-
+            output = self._parse_sheet(
+                data=data,
+                parse_area=asheetname,
+                header=header,
+                output=output,
+                outputDict=outputDict,
+                names=names,
+                index_col=index_col,
+                usecols=usecols,
+                dtype=dtype,
+                skiprows=skiprows,
+                nrows=nrows,
+                true_values=true_values,
+                false_values=false_values,
+                na_values=na_values,
+                parse_dates=parse_dates,
+                date_parser=date_parser,
+                date_format=date_format,
+                thousands=thousands,
+                decimal=decimal,
+                comment=comment,
+                skipfooter=skipfooter,
+                dtype_backend=dtype_backend,
+                **kwds,
+            )
         if last_sheetname is None:
             raise ValueError("Sheet name is an empty list")
 
+        last_tablename = None
+        outputDict = "tables"
+
+        if tables is not None:
+            sheets_reqd = self.get_sheets_required(tables)
+            for req_sheet in sheets_reqd:
+                sheet_tables = self.get_sheet_tables(req_sheet)
+                for atablename in tables:
+                    last_tablename = atablename
+                    table_data = None
+
+                    if atablename in sheet_tables.keys():
+                        if verbose:
+                            print(f"Reading Table: {atablename}")
+
+                        file_rows_needed = self._calc_rows(
+                            header, index_col, skiprows, nrows
+                        )
+                        table_data = self.get_data(
+                            sheet=req_sheet,
+                            tablename=sheet_tables[atablename],
+                            file_rows_needed=file_rows_needed,
+                        )
+                        tables.remove(atablename)
+
+                        usecols = maybe_convert_usecols(usecols)
+
+                        if not table_data:
+                            output[outputDict][atablename] = DataFrame()
+                            continue
+
+                        output = self._parse_sheet(
+                            data=table_data,
+                            parse_area=atablename,
+                            header=header,
+                            output=output,
+                            outputDict=outputDict,
+                            names=names,
+                            index_col=index_col,
+                            usecols=usecols,
+                            dtype=dtype,
+                            skiprows=skiprows,
+                            nrows=nrows,
+                            true_values=true_values,
+                            false_values=false_values,
+                            na_values=na_values,
+                            parse_dates=parse_dates,
+                            date_parser=date_parser,
+                            date_format=date_format,
+                            thousands=thousands,
+                            decimal=decimal,
+                            comment=comment,
+                            skipfooter=skipfooter,
+                            dtype_backend=dtype_backend,
+                            **kwds,
+                        )
+
+        if not bool(output["tables"]) and not bool(output["sheets"]):
+            return DataFrame()
+
         if ret_dict:
+            if tables is None:
+                return output["sheets"]
+            elif sheet_name == 0:
+                return output["tables"]
+            else:
+                return output
+        elif tables is not None and sheet_name != 0:
             return output
+        elif tables is not None and sheet_name == 0:
+            return output["tables"][last_tablename]
         else:
-            return output[last_sheetname]
+            return output["sheets"][last_sheetname]
+
+    def _parse_sheet(
+        self,
+        data: list,
+        output: dict | dict[str, dict],
+        parse_area: str | int | None = None,
+        header: int | Sequence[int] | None = 0,
+        outputDict: str | None = None,
+        names: SequenceNotStr[Hashable] | range | None = None,
+        index_col: int | Sequence[int] | None = None,
+        usecols=None,
+        dtype: DtypeArg | None = None,
+        skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
+        nrows: int | None = None,
+        true_values: Iterable[Hashable] | None = None,
+        false_values: Iterable[Hashable] | None = None,
+        na_values=None,
+        parse_dates: list | dict | bool = False,
+        date_parser: Callable | lib.NoDefault = lib.no_default,
+        date_format: dict[Hashable, str] | str | None = None,
+        thousands: str | None = None,
+        decimal: str = ".",
+        comment: str | None = None,
+        skipfooter: int = 0,
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+        **kwds,
+    ):
+        is_list_header = False
+        is_len_one_list_header = False
+        if is_list_like(header):
+            assert isinstance(header, Sequence)
+            is_list_header = True
+            if len(header) == 1:
+                is_len_one_list_header = True
+
+        if is_len_one_list_header:
+            header = cast(Sequence[int], header)[0]
+
+        # forward fill and pull out names for MultiIndex column
+        header_names = None
+        if header is not None and is_list_like(header):
+            assert isinstance(header, Sequence)
+
+            header_names = []
+            control_row = [True] * len(data[0])
+
+            for row in header:
+                if is_integer(skiprows):
+                    assert isinstance(skiprows, int)
+                    row += skiprows
+
+                if row > len(data) - 1:
+                    raise ValueError(
+                        f"header index {row} exceeds maximum index "
+                        f"{len(data) - 1} of data.",
+                    )
+
+                data[row], control_row = fill_mi_header(data[row], control_row)
+
+                if index_col is not None:
+                    header_name, _ = pop_header_name(data[row], index_col)
+                    header_names.append(header_name)
+
+        # If there is a MultiIndex header and an index then there is also
+        # a row containing just the index name(s)
+        has_index_names = False
+        if is_list_header and not is_len_one_list_header and index_col is not None:
+            index_col_list: Sequence[int]
+            if isinstance(index_col, int):
+                index_col_list = [index_col]
+            else:
+                assert isinstance(index_col, Sequence)
+                index_col_list = index_col
+
+            # We have to handle mi without names. If any of the entries in the data
+            # columns are not empty, this is a regular row
+            assert isinstance(header, Sequence)
+            if len(header) < len(data):
+                potential_index_names = data[len(header)]
+                potential_data = [
+                    x
+                    for i, x in enumerate(potential_index_names)
+                    if not control_row[i] and i not in index_col_list
+                ]
+                has_index_names = all(x == "" or x is None for x in potential_data)
+
+        if is_list_like(index_col):
+            # Forward fill values for MultiIndex index.
+            if header is None:
+                offset = 0
+            elif isinstance(header, int):
+                offset = 1 + header
+            else:
+                offset = 1 + max(header)
+
+            # GH34673: if MultiIndex names present and not defined in the header,
+            # offset needs to be incremented so that forward filling starts
+            # from the first MI value instead of the name
+            if has_index_names:
+                offset += 1
+
+            # Check if we have an empty dataset
+            # before trying to collect data.
+            if offset < len(data):
+                assert isinstance(index_col, Sequence)
+
+                for col in index_col:
+                    last = data[offset][col]
+
+                    for row in range(offset + 1, len(data)):
+                        if data[row][col] == "" or data[row][col] is None:
+                            data[row][col] = last
+                        else:
+                            last = data[row][col]
+
+        # GH 12292 : error when read one empty column from excel file
+        try:
+            parser = TextParser(
+                data,
+                names=names,
+                header=header,
+                index_col=index_col,
+                has_index_names=has_index_names,
+                dtype=dtype,
+                true_values=true_values,
+                false_values=false_values,
+                skiprows=skiprows,
+                nrows=nrows,
+                na_values=na_values,
+                skip_blank_lines=False,  # GH 39808
+                parse_dates=parse_dates,
+                date_parser=date_parser,
+                date_format=date_format,
+                thousands=thousands,
+                decimal=decimal,
+                comment=comment,
+                skipfooter=skipfooter,
+                usecols=usecols,
+                dtype_backend=dtype_backend,
+                **kwds,
+            )
+
+            output[outputDict][parse_area] = parser.read(nrows=nrows)
+
+            if header_names:
+                output[outputDict][parse_area].columns = output[outputDict][
+                    parse_area
+                ].columns.set_names(header_names)
+
+        except EmptyDataError:
+            # No Data, return an empty DataFrame
+            output[outputDict][parse_area] = DataFrame()
+
+        except Exception as err:
+            err.args = (f"{err.args[0]} (sheet: {parse_area})", *err.args[1:])
+            raise err
+
+        return output
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -1585,6 +1780,7 @@ class ExcelFile:
     def parse(
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
+        table_name: str | int | list[int] | list[str] | None = 0,
         header: int | Sequence[int] | None = 0,
         names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
@@ -1617,6 +1813,11 @@ class ExcelFile:
             sheet positions (chart sheets do not count as a sheet position).
             Lists of strings/integers are used to request multiple sheets.
             Specify ``None`` to get all worksheets.
+        table_name : str, list of str, or None, default 0
+            Strings are used for table_names that correspond to Excel Table names.
+            Lists of strings are used to request multiple tables.
+            Specify ``None`` to get all tables.
+
         header : int, list of int, default 0
             Row (0-indexed) to use for the column labels of the parsed
             DataFrame. If a list of integers is passed those row positions will
@@ -1747,6 +1948,7 @@ class ExcelFile:
         """
         return self._reader.parse(
             sheet_name=sheet_name,
+            table_name=table_name,
             header=header,
             names=names,
             index_col=index_col,
@@ -1823,6 +2025,18 @@ class ExcelFile:
         ["Sheet1", "Sheet2"]
         """
         return self._reader.sheet_names
+
+    @property
+    def table_names(self):
+        """
+        Names of the tables in the document
+
+        Returns
+        -------
+        list of str
+            List of table names in the document
+        """
+        return self._reader.table_names
 
     def close(self) -> None:
         """close io if necessary"""

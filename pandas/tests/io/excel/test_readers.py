@@ -800,6 +800,86 @@ class TestReaders:
         with pytest.raises(ZeroDivisionError, match=r" \(sheet: Sheet1\)$"):
             pd.read_excel("test1" + read_ext, usecols=lambda x: 1 / 0, sheet_name=None)
 
+    def test_reading_all_tables(self, engine):
+        if engine == "openpyxl":
+            expected = {
+                "Table1": DataFrame([[1, 2]], columns=["Col1", "Col2"]),
+                "Table2": DataFrame([[100]], columns=["Column1"]),
+            }
+            actual = pd.read_excel("test_tables.xlsx", table_name=None)
+            tm.assert_frame_equal(actual["Table1"], expected["Table1"])
+            tm.assert_frame_equal(actual["Table2"], expected["Table2"])
+        else:
+            pytest.skip(
+                f"Skipped for {engine}, reading tables with this engine is unsupported"
+            )
+
+    def test_reading_table(self, engine):
+        if engine == "openpyxl":
+            expected = DataFrame([[1, 2]], columns=["Col1", "Col2"])
+            actual = pd.read_excel("test_tables.xlsx", table_name="Table1")
+            tm.assert_frame_equal(actual, expected)
+        else:
+            pytest.skip(
+                f"Skipped for {engine}, reading tables with this engine is unsupported"
+            )
+
+    def test_reading_table_and_sheet_no_header(self, engine):
+        if engine == "openpyxl":
+            expected = {
+                "sheets": {
+                    "Sheet1": DataFrame(
+                        [[1, "data", "Col1", "Col2"], [np.nan, np.nan, 1, 2]],
+                        columns=[0, 1, 2, 3],
+                        dtype="object",
+                    )
+                },
+                "tables": {
+                    "Table1": DataFrame([["Col1", "Col2"], [1, 2]], columns=[0, 1])
+                },
+            }
+            actual = pd.read_excel(
+                "test_tables.xlsx",
+                sheet_name="Sheet1",
+                table_name="Table1",
+                header=None,
+                dtype="object",
+            )
+            tm.assert_frame_equal(
+                actual["sheets"]["Sheet1"], expected["sheets"]["Sheet1"]
+            )
+            tm.assert_frame_equal(
+                actual["tables"]["Table1"], expected["tables"]["Table1"]
+            )
+        else:
+            pytest.skip(
+                f"Skipped for {engine}, reading tables with this engine is unsupported"
+            )
+
+    def test_reading_table_and_sheet_with_header(self, engine):
+        if engine == "openpyxl":
+            expected = {
+                "sheets": {
+                    "Sheet1": DataFrame(
+                        [[np.nan, np.nan, 1, 2]], columns=[1, "data", "Col1", "Col2"]
+                    )
+                },
+                "tables": {"Table1": DataFrame([[1, 2]], columns=["Col1", "Col2"])},
+            }
+            actual = pd.read_excel(
+                "test_tables.xlsx", sheet_name="Sheet1", table_name="Table1"
+            )
+            tm.assert_frame_equal(
+                actual["sheets"]["Sheet1"], expected["sheets"]["Sheet1"]
+            )
+            tm.assert_frame_equal(
+                actual["tables"]["Table1"], expected["tables"]["Table1"]
+            )
+        else:
+            pytest.skip(
+                f"Skipped for {engine}, reading tables with this engine is unsupported"
+            )
+
     @pytest.mark.filterwarnings("ignore:Cell A4 is marked:UserWarning:openpyxl")
     def test_date_conversion_overflow(self, request, engine, read_ext):
         # GH 10001 : pandas.ExcelFile ignore parse_dates=False

@@ -605,15 +605,45 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
 
         return cell.value
 
-    def get_sheet_data(
-        self, sheet, file_rows_needed: int | None = None
-    ) -> list[list[Scalar]]:
-        if self.book.read_only:
-            sheet.reset_dimensions()
+    @property
+    def table_names(self) -> list[str]:
+        tables = None
+        tables = []
+        for sheet in self.book.worksheets:
+            for table in sheet.tables.values():
+                tables.append(table.name)
+        return tables
 
+    def get_sheets_required(self, tables):
+        sheets_reqd = []
+        for sheet in self.book.worksheets:
+            for table in sheet.tables.values():
+                if table.name in tables:
+                    sheets_reqd.append(sheet)
+                    continue
+        return sheets_reqd
+
+    def get_sheet_tables(self, sheet):
+        tables = {}
+        for table in sheet.tables.values():
+            tables[table.name] = table
+        return tables
+
+    def get_data(
+        self,
+        sheet,
+        tablename,
+        file_rows_needed: int | None = None,
+    ) -> list[list[Scalar]]:
+        if tablename is not None:
+            input = sheet[tablename.ref]
+        else:
+            if self.book.read_only:
+                sheet.reset_dimensions()
+            input = sheet
         data: list[list[Scalar]] = []
         last_row_with_data = -1
-        for row_number, row in enumerate(sheet.rows):
+        for row_number, row in enumerate(input):
             converted_row = [self._convert_cell(cell) for cell in row]
             while converted_row and converted_row[-1] == "":
                 # trim trailing empty elements
@@ -636,5 +666,4 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
                     data_row + (max_width - len(data_row)) * empty_cell
                     for data_row in data
                 ]
-
         return data
