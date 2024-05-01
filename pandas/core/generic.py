@@ -12558,7 +12558,10 @@ def make_doc(name: str, ndim: int) -> str:
     elif name == "median":
         base_doc = _num_doc
         desc = "Return the median of the values over the requested axis."
-        see_also = ""
+        see_also = """
+            See Also
+            --------
+            DataFrame.mean : Return the mean of the values over the requested axis."""
         examples = """
 
             Examples
@@ -12599,7 +12602,11 @@ def make_doc(name: str, ndim: int) -> str:
     elif name == "mean":
         base_doc = _num_doc
         desc = "Return the mean of the values over the requested axis."
-        see_also = ""
+        see_also = """
+            See Also
+            --------
+            DataFrame.median : Return the median of the values over the requested
+                axis."""
         examples = """
 
             Examples

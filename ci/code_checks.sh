@@ -71,10 +71,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.DataFrame.max RT03" \
-        -i "pandas.DataFrame.mean RT03,SA01" \
-        -i "pandas.DataFrame.median RT03,SA01" \
+        -i "pandas.DataFrame.mean RT03" \
+        -i "pandas.DataFrame.median RT03" \
         -i "pandas.DataFrame.min RT03" \
-        -i "pandas.DataFrame.plot PR02,SA01" \
+        -i "pandas.DataFrame.plot PR02" \
         -i "pandas.DataFrame.prod RT03" \
         -i "pandas.DataFrame.product RT03" \
         -i "pandas.DataFrame.sem PR01,RT03,SA01" \
@@ -233,15 +233,15 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Series.list.len SA01" \
         -i "pandas.Series.lt PR07,SA01" \
         -i "pandas.Series.max RT03" \
-        -i "pandas.Series.mean RT03,SA01" \
-        -i "pandas.Series.median RT03,SA01" \
+        -i "pandas.Series.mean RT03" \
+        -i "pandas.Series.median RT03" \
         -i "pandas.Series.min RT03" \
         -i "pandas.Series.mod PR07" \
         -i "pandas.Series.mode SA01" \
         -i "pandas.Series.mul PR07" \
         -i "pandas.Series.ne PR07,SA01" \
         -i "pandas.Series.pad PR01,SA01" \
-        -i "pandas.Series.plot PR02,SA01" \
+        -i "pandas.Series.plot PR02" \
         -i "pandas.Series.pop RT03,SA01" \
         -i "pandas.Series.pow PR07" \
         -i "pandas.Series.prod RT03" \
@@ -508,7 +508,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.DataFrameGroupBy.nth PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.nunique SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.ohlc SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.plot PR02,SA01" \
+        -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.DataFrameGroupBy.prod SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.sem SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.sum SA01" \
@@ -526,7 +526,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.core.groupby.SeriesGroupBy.min SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.nth PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.ohlc SA01" \
-        -i "pandas.core.groupby.SeriesGroupBy.plot PR02,SA01" \
+        -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.prod SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.sem SA01" \
         -i "pandas.core.groupby.SeriesGroupBy.sum SA01" \
