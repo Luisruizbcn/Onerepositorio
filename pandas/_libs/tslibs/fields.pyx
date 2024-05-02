@@ -253,10 +253,12 @@ def get_start_end_field(
         # month of year. Other offsets use month, startingMonth as ending
         # month of year.
 
-        if (freqstr[0:2] in ["MS", "QS", "YS"]) or (
-                freqstr[1:3] in ["MS", "QS", "YS"]):
+        # According to the above comment, the first conditional is for QS and YS only
+        if (freqstr[0:2] in ["QS", "YS"]) or (
+                freqstr[1:3] in ["QS", "YS"]):
             end_month = 12 if month_kw == 1 else month_kw - 1
             start_month = month_kw
+
         else:
             end_month = month_kw
             start_month = (end_month % 12) + 1
