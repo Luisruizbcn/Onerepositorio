@@ -185,6 +185,8 @@ cdef int64_t cast_from_unit(
         int64_t m
         int p
         NPY_DATETIMEUNIT in_reso
+        int64_t frac_int64
+        float64_t frac_float64
 
     if unit in ["Y", "M"]:
         if is_float_object(ts) and not ts.is_integer():
@@ -220,16 +222,29 @@ cdef int64_t cast_from_unit(
             f"cannot convert input {ts} with the unit '{unit}'"
         ) from err
 
-    frac = ts - base
-    if p:
-        frac = round(frac, p)
-
-    try:
-        return <int64_t>(base * m) + <int64_t>(frac * m)
-    except OverflowError as err:
-        raise OutOfBoundsDatetime(
-            f"cannot convert input {ts} with the unit '{unit}'"
-        ) from err
+    # To maintain consistency across changes in NEP 50, handle the integer and
+    # float cases separately, using frac variables with explicitly declared
+    # types. See GH 56996 and 57984 for more discussion.
+    if isinstance(ts, np.integer):
+        frac_int64 = ts - base
+        if p:
+            frac_int64 = round(frac_int64, p)
+        try:
+            return <int64_t>(base * m) + <int64_t>(frac_int64 * m)
+        except OverflowError as err:
+            raise OutOfBoundsDatetime(
+                f"cannot convert input {ts} with the unit '{unit}'"
+            ) from err
+    else:
+        frac_float64 = ts - base
+        if p:
+            frac_float64 = round(frac_float64, p)
+        try:
+            return <int64_t>(base * m) + <int64_t>(frac_float64 * m)
+        except OverflowError as err:
+            raise OutOfBoundsDatetime(
+                f"cannot convert input {ts} with the unit '{unit}'"
+            ) from err
 
 
 cdef (int64_t, int) precision_from_unit(
