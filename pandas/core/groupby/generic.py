@@ -2044,6 +2044,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         elif ndim == 1:
             if subset is None:
                 subset = self.obj[key]
+
             return SeriesGroupBy(
                 subset,
                 self.keys,
