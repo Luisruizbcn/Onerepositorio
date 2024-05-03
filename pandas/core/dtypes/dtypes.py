@@ -47,6 +47,7 @@ from pandas._libs.tslibs.dtypes import (
 )
 from pandas._libs.tslibs.offsets import BDay
 from pandas.compat import pa_version_under10p1
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 
@@ -2299,6 +2300,8 @@ class ArrowDtype(StorageExtensionDtype):
 
         base_type = string[:-9]  # get rid of "[pyarrow]"
         try:
+            # GH#57928
+            pa = import_optional_dependency("pyarrow")
             pa_dtype = pa.type_for_alias(base_type)
         except ValueError as err:
             has_parameters = re.search(r"[\[\(].*[\]\)]", base_type)
