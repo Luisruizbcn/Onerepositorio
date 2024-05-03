@@ -1471,6 +1471,8 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - mixed
     - unknown-array
 
+    Returns a dtype object for non-legacy numpy dtypes
+
     Raises
     ------
     TypeError
@@ -1573,6 +1575,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     if inferred is not None:
         # Anything other than object-dtype should return here.
         return inferred
+    elif values.dtype.kind == "T":
+         # NumPy StringDType
+         return values.dtype
 
     if values.descr.type_num != NPY_OBJECT:
         # i.e. values.dtype != np.object_
@@ -1899,7 +1904,10 @@ cdef class StringValidator(Validator):
         return isinstance(value, str)
 
     cdef bint is_array_typed(self) except -1:
-        return self.dtype.type_num == cnp.NPY_UNICODE
+        if self.dtype.char == "T" or self.dtype.char == "U":
+            return True
+        # this lets user-defined string DTypes through
+        return issubclass(<object>self.dtype.typeobj, (np.str_, str))
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
@@ -2846,7 +2854,7 @@ NoDefault = Literal[_NoDefault.no_default]
 
 
 def map_infer_mask(
-        ndarray[object] arr,
+        ndarray arr,
         object f,
         const uint8_t[:] mask,
         *,
@@ -2894,8 +2902,8 @@ def map_infer_mask(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def _map_infer_mask(
-        ndarray[uint8_int64_object_t] out,
-        ndarray[object] arr,
+        ndarray out,
+        ndarray arr,
         object f,
         const uint8_t[:] mask,
         object na_value=no_default,

@@ -17,8 +17,13 @@ from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_integer_dtype,
+)
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays.integer import IntegerArray
 from pandas.core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:
@@ -258,6 +263,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             f = lambda x: getattr(x, method)(sub, start)
         else:
             f = lambda x: getattr(x, method)(sub, start, end)
+
         return self._str_map(f, dtype="int64")
 
     def _str_findall(self, pat, flags: int = 0):
@@ -495,3 +501,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 return empty_row
 
         return [f(val) for val in np.asarray(self)]
+
+    def _str_zfill(self, width):
+        f = lambda x: x.zfill(width)
+        return self._str_map(f)

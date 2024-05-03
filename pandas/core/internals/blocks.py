@@ -106,6 +106,7 @@ from pandas.core.arrays import (
     ExtensionArray,
     IntervalArray,
     NumpyExtensionArray,
+    NumpyStringArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -2114,7 +2115,10 @@ class NumpyBlock(Block):
 
     @property
     def array_values(self) -> ExtensionArray:
-        return NumpyExtensionArray(self.values)
+        if self.values.dtype.kind == 'T':
+            return NumpyStringArray(self.values)
+        else:
+            return NumpyExtensionArray(self.values)
 
     def get_values(self, dtype: DtypeObj | None = None) -> np.ndarray:
         if dtype == _dtype_obj:
@@ -2182,7 +2186,7 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     if isinstance(values, np.ndarray):
         values = ensure_wrapped_if_datetimelike(values)
 
-        if issubclass(values.dtype.type, str):
+        if values.dtype.kind == "U":
             values = np.array(values, dtype=object)
 
     if isinstance(values, (DatetimeArray, TimedeltaArray)) and values.freq is not None:

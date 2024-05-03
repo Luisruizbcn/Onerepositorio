@@ -14,6 +14,7 @@ from pandas.core.arrays import (
     IntegerArray,
     IntervalArray,
     NumpyExtensionArray,
+    ObjectStringArray,
     PeriodArray,
     SparseArray,
     StringArray,
@@ -33,5 +34,6 @@ __all__ = [
     "PeriodArray",
     "SparseArray",
     "StringArray",
+    "ObjectStringArray",
     "TimedeltaArray",
 ]

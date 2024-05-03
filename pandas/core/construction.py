@@ -749,7 +749,7 @@ def _sanitize_str_dtypes(
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
-    if issubclass(result.dtype.type, str):
+    if result.dtype.kind == "U":
         # GH#16605
         # If not empty convert the data to dtype
         # GH#19853: If data is a scalar, result has already the result
