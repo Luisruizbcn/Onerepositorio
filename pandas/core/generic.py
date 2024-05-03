@@ -94,7 +94,10 @@ from pandas.errors import (
 )
 from pandas.errors.cow import _chained_assignment_method_msg
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    Pandas40DeprecationWarning,
+    find_stack_level,
+)
 from pandas.util._validators import (
     check_dtype_backend,
     validate_ascending,
@@ -4297,7 +4300,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "version. Copy-on-Write is active in pandas since 3.0 which utilizes "
                 "a lazy copy mechanism that defers copies until necessary. Use "
                 ".copy() to make an eager copy if necessary.",
-                DeprecationWarning,
+                Pandas40DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
 
