@@ -137,7 +137,6 @@ if TYPE_CHECKING:
         encoding_errors: str | None
         dialect: str | csv.Dialect | None
         on_bad_lines: str
-        delim_whitespace: bool | lib.NoDefault
         low_memory: bool
         memory_map: bool
         float_precision: Literal["high", "legacy", "round_trip"] | None
@@ -517,7 +516,6 @@ Examples
 
 
 class _C_Parser_Defaults(TypedDict):
-    delim_whitespace: Literal[False]
     na_filter: Literal[True]
     low_memory: Literal[True]
     memory_map: Literal[False]
@@ -525,7 +523,6 @@ class _C_Parser_Defaults(TypedDict):
 
 
 _c_parser_defaults: _C_Parser_Defaults = {
-    "delim_whitespace": False,
     "na_filter": True,
     "low_memory": True,
     "memory_map": False,
@@ -551,7 +548,6 @@ _pyarrow_unsupported = {
     "thousands",
     "memory_map",
     "dialect",
-    "delim_whitespace",
     "quoting",
     "lineterminator",
     "converters",
@@ -783,7 +779,6 @@ def read_csv(
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
-    delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
@@ -833,17 +828,6 @@ def read_csv(
             stacklevel=find_stack_level(),
         )
 
-    if delim_whitespace is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'delim_whitespace' keyword in pd.read_csv is deprecated and "
-            "will be removed in a future version. Use ``sep='\\s+'`` instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        delim_whitespace = False
-
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -852,7 +836,6 @@ def read_csv(
     kwds_defaults = _refine_defaults_read(
         dialect,
         delimiter,
-        delim_whitespace,
         engine,
         sep,
         on_bad_lines,
@@ -974,7 +957,6 @@ def read_table(
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
-    delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
@@ -1015,17 +997,6 @@ def read_table(
             stacklevel=find_stack_level(),
         )
 
-    if delim_whitespace is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'delim_whitespace' keyword in pd.read_table is deprecated and "
-            "will be removed in a future version. Use ``sep='\\s+'`` instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        delim_whitespace = False
-
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -1034,7 +1005,6 @@ def read_table(
     kwds_defaults = _refine_defaults_read(
         dialect,
         delimiter,
-        delim_whitespace,
         engine,
         sep,
         on_bad_lines,
@@ -1341,9 +1311,8 @@ class TextFileReader(abc.Iterator):
                 engine = "python"
 
         sep = options["delimiter"]
-        delim_whitespace = options["delim_whitespace"]
 
-        if sep is None and not delim_whitespace:
+        if sep is None:
             if engine in ("c", "pyarrow"):
                 fallback_reason = (
                     f"the '{engine}' engine does not support "
@@ -1352,7 +1321,6 @@ class TextFileReader(abc.Iterator):
                 engine = "python"
         elif sep is not None and len(sep) > 1:
             if engine == "c" and sep == r"\s+":
-                result["delim_whitespace"] = True
                 del result["delimiter"]
             elif engine not in ("python", "python-fwf"):
                 # wait until regex engine integrated
@@ -1362,9 +1330,6 @@ class TextFileReader(abc.Iterator):
                     r"different from '\s+' are interpreted as regex)"
                 )
                 engine = "python"
-        elif delim_whitespace:
-            if "python" in engine:
-                result["delimiter"] = r"\s+"
         elif sep is not None:
             encodeable = True
             encoding = sys.getfilesystemencoding() or "utf-8"
@@ -1779,7 +1744,6 @@ def _stringify_na_values(na_values, floatify: bool) -> set[str | float]:
 def _refine_defaults_read(
     dialect: str | csv.Dialect | None,
     delimiter: str | None | lib.NoDefault,
-    delim_whitespace: bool,
     engine: CSVEngine | None,
     sep: str | None | lib.NoDefault,
     on_bad_lines: str | Callable,
@@ -1861,12 +1825,6 @@ def _refine_defaults_read(
     # Alias sep -> delimiter.
     if delimiter is None:
         delimiter = sep
-
-    if delim_whitespace and (delimiter is not lib.no_default):
-        raise ValueError(
-            "Specified a delimiter with both sep and "
-            "delim_whitespace=True; you can only specify one."
-        )
 
     if delimiter == "\n":
         raise ValueError(
