@@ -57,8 +57,10 @@ from pandas._libs.tslibs.ccalendar cimport (
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
     c_DEPR_ABBREVS,
-    c_OFFSET_DEPR_FREQSTR,
-    c_REVERSE_OFFSET_DEPR_FREQSTR,
+    c_OFFSET_REMOVED_FREQSTR,
+    c_OFFSET_TO_PERIOD_FREQSTR,
+    c_PERIOD_AND_OFFSET_ALIASES,
+    c_PERIOD_TO_OFFSET_FREQSTR,
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -4829,53 +4831,46 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if not is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
-                    warnings.warn(
-                        f"\'{name}\' is deprecated and will be removed "
-                        f"in a future version, please use "
-                        f"\'{c_OFFSET_DEPR_FREQSTR.get(name.upper())}\' instead.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    name = c_OFFSET_DEPR_FREQSTR[name.upper()]
-                if (not is_period and
-                        name != name.upper() and
-                        name.lower() not in {"s", "ms", "us", "ns"} and
-                        name.upper().split("-")[0].endswith(("S", "E"))):
-                    warnings.warn(
-                        f"\'{name}\' is deprecated and will be removed "
-                        f"in a future version, please use "
-                        f"\'{name.upper()}\' instead.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    name = name.upper()
-                if is_period and name.upper() in c_REVERSE_OFFSET_DEPR_FREQSTR:
-                    if name.upper().startswith("Y"):
+                if not is_period:
+                    if name.upper() in c_OFFSET_REMOVED_FREQSTR:
                         raise ValueError(
-                            f"for Period, please use \'Y{name.upper()[2:]}\' "
-                            f"instead of \'{name}\'"
+                            f"\'{name}\' is no longer supported for offsets. Please "
+                            f"use \'{c_OFFSET_REMOVED_FREQSTR.get(name.upper())}\' "
+                            f"instead."
                         )
-                    if (name.upper().startswith("B") or
-                            name.upper().startswith("S") or
-                            name.upper().startswith("C")):
+                    # below we raise for lowercase monthly and bigger frequencies
+                    if (name.upper() != name and
+                            name.lower() not in c_PERIOD_AND_OFFSET_ALIASES and
+                            name.upper() in c_PERIOD_AND_OFFSET_ALIASES):
                         raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
-                    else:
+                if is_period:
+                    if name in c_PERIOD_TO_OFFSET_FREQSTR:
+                        name = c_PERIOD_TO_OFFSET_FREQSTR[name]
+                    # we will remove the check below after deprecating lowercase
+                    # frequencies for "d", "b", "w", "weekday", "w-sun”, and so on.
+                    elif (name.upper() not in {"B", "D"} and
+                            not name.upper().startswith("W")):
                         raise ValueError(
-                            f"for Period, please use "
-                            f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name.upper())}\' "
-                            f"instead of \'{name}\'"
+                            f"\'{name}\' is not supported as period frequency."
                         )
-                elif is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
-                    if name.upper() != name:
-                        warnings.warn(
-                            f"\'{name}\' is deprecated and will be removed in "
-                            f"a future version, please use \'{name.upper()}\' "
-                            f"instead.",
+                if name in c_PERIOD_AND_OFFSET_ALIASES:
+                    if name.startswith(("W", "w", "D", "d", "B", "b")) and name != name.upper():
+                        if name.startswith(("W", "w")):
+                            warnings.warn(
+                            f"\'{name}\' is deprecated and will be removed "
+                            f"in a future version, please use \'{name.upper()}\' instead.",
                             FutureWarning,
                             stacklevel=find_stack_level(),
+                            )
+                        name = name.upper()
+                    if not name.startswith(("W", "w", "D", "d", "B", "b")) and name != name.lower():
+                        warnings.warn(
+                        f"\'{name}\' is deprecated and will be removed "
+                        f"in a future version, please use \'{name.lower()}\' instead.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
                         )
-                    name = c_OFFSET_DEPR_FREQSTR.get(name.upper())
+                        name = name.lower()
 
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
