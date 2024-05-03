@@ -434,6 +434,7 @@ class DataFrameFormatter:
         formatters: FormattersType | None = None,
         justify: str | None = None,
         float_format: FloatFormatType | None = None,
+        integer_format: str | None = None,
         sparsify: bool | None = None,
         index_names: bool = True,
         max_rows: int | None = None,
@@ -453,6 +454,7 @@ class DataFrameFormatter:
         self.formatters = self._initialize_formatters(formatters)
         self.justify = self._initialize_justify(justify)
         self.float_format = float_format
+        self.integer_format = integer_format
         self.sparsify = self._initialize_sparsify(sparsify)
         self.show_index_names = index_names
         self.decimal = decimal
@@ -756,6 +758,7 @@ class DataFrameFormatter:
             frame.iloc[:, i]._values,
             formatter,
             float_format=self.float_format,
+            integer_format=self.integer_format,
             na_rep=self.na_rep,
             space=self.col_space.get(frame.columns[i]),
             decimal=self.decimal,
@@ -789,9 +792,11 @@ class DataFrameFormatter:
             fmt_columns = columns._format_flat(include_name=False)
             str_columns = [
                 [
-                    " " + x
-                    if not self._get_formatter(i) and is_numeric_dtype(dtype)
-                    else x
+                    (
+                        " " + x
+                        if not self._get_formatter(i) and is_numeric_dtype(dtype)
+                        else x
+                    )
                 ]
                 for i, (x, dtype) in enumerate(zip(fmt_columns, self.frame.dtypes))
             ]
@@ -1063,6 +1068,7 @@ def format_array(
     values: ArrayLike,
     formatter: Callable | None,
     float_format: FloatFormatType | None = None,
+    integer_format: str | None = None,
     na_rep: str = "NaN",
     digits: int | None = None,
     space: str | int | None = None,
@@ -1124,6 +1130,9 @@ def format_array(
     if float_format is None:
         float_format = get_option("display.float_format")
 
+    if integer_format is None:
+        integer_format = get_option("display.integer_format")
+
     if digits is None:
         digits = get_option("display.precision")
 
@@ -1132,6 +1141,7 @@ def format_array(
         digits=digits,
         na_rep=na_rep,
         float_format=float_format,
+        integer_format=integer_format,
         formatter=formatter,
         space=space,
         justify=justify,
@@ -1153,6 +1163,7 @@ class _GenericArrayFormatter:
         na_rep: str = "NaN",
         space: str | int = 12,
         float_format: FloatFormatType | None = None,
+        integer_format: str | None = None,
         justify: str = "right",
         decimal: str = ".",
         quoting: int | None = None,
@@ -1166,6 +1177,7 @@ class _GenericArrayFormatter:
         self.space = space
         self.formatter = formatter
         self.float_format = float_format
+        self.integer_format = integer_format
         self.justify = justify
         self.decimal = decimal
         self.quoting = quoting
@@ -1455,13 +1467,19 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 
 class _IntArrayFormatter(_GenericArrayFormatter):
     def _format_strings(self) -> list[str]:
-        if self.leading_space is False:
-            formatter_str = lambda x: f"{x:d}".format(x=x)
+
+        if self.integer_format in (",", "_", None):
+            if self.integer_format is None:
+                self.integer_format = ""
+            if self.leading_space is False:
+                formatter_str = lambda x: f"{x:{self.integer_format}}".format(x=x)
+            else:
+                formatter_str = lambda x: f"{x: {self.integer_format}}".format(x=x)
+            formatter = self.formatter or formatter_str
+            fmt_values = [formatter(x) for x in self.values]
+            return fmt_values
         else:
-            formatter_str = lambda x: f"{x: d}".format(x=x)
-        formatter = self.formatter or formatter_str
-        fmt_values = [formatter(x) for x in self.values]
-        return fmt_values
+            raise ValueError("integer_format must be one of ',','_', or None")
 
 
 class _Datetime64Formatter(_GenericArrayFormatter):
