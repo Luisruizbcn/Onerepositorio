@@ -231,6 +231,7 @@ Removal of prior version deprecations/changes
 - Disallow non-standard (``np.ndarray``, :class:`Index`, :class:`ExtensionArray`, or :class:`Series`) to :func:`isin`, :func:`unique`, :func:`factorize` (:issue:`52986`)
 - Disallow passing a pandas type to :meth:`Index.view` (:issue:`55709`)
 - Disallow units other than "s", "ms", "us", "ns" for datetime64 and timedelta64 dtypes in :func:`array` (:issue:`53817`)
+- Enforced deprecation disallowing passing a ``BlockManager`` to :class:`DataFrame` or ``SingleBlockManager`` to :class:`Series`, use public APIs instead (:issue:`52419`)
 - Removed "freq" keyword from :class:`PeriodArray` constructor, use "dtype" instead (:issue:`52462`)
 - Removed 'fastpath' keyword in :class:`Categorical` constructor (:issue:`20110`)
 - Removed 'kind' keyword in :meth:`Series.resample` and :meth:`DataFrame.resample` (:issue:`58125`)
